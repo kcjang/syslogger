@@ -3,6 +3,7 @@ package com.kichang.syslog;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import com.cloudbees.syslog.Facility;
 import com.cloudbees.syslog.MessageFormat;
 import com.cloudbees.syslog.Severity;
+import com.cloudbees.syslog.sender.AbstractSyslogMessageSender;
+import com.cloudbees.syslog.sender.SyslogMessageSender;
 import com.cloudbees.syslog.sender.TcpSyslogMessageSender;
+import com.cloudbees.syslog.sender.UdpSyslogMessageSender;
 
 @SpringBootApplication
 public class SysloggerApplication {
@@ -24,7 +28,6 @@ public class SysloggerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SysloggerApplication.class, args);
 	}
-	
 	
 	@Bean
 	public UdpSyslogReceivingChannelAdapter udpReceiver() {
@@ -36,12 +39,12 @@ public class SysloggerApplication {
 	    	boolean ret = false;
 	    	try {
 	    		System.out.println(msg);
-				tcpSyslog("192.168.0.157", "1468", msg);
+				
+	    		
+	    		
 				ret = true;
-			} catch (SyslogException e) {
-
-			} catch (IOException e) {
-
+			} finally {
+				
 			}
 	    	return ret;
 	    });
@@ -63,31 +66,47 @@ public class SysloggerApplication {
 	    return exec;
 	}
 	
-	private void tcpSyslog(String ip, String port, String msg) throws SyslogException, IOException {
-		String charset = "utf-8";
-		TcpSyslogMessageSender messageSender = null;		
-		if ("euc-kr".equalsIgnoreCase(charset)) {
-			messageSender = new MyTcpSyslogMessageSender();
-		} else if ("euc_kr".equalsIgnoreCase(charset)) {
-			messageSender = new MyTcpSyslogMessageSender();
-		} else if ("utf-8".equalsIgnoreCase(charset)) {
-			messageSender = new TcpSyslogMessageSender();
-		} else if ("utf8".equalsIgnoreCase(charset)) {
-			messageSender = new TcpSyslogMessageSender();
+	private SyslogMessageSender getMessageSender(String cfg) throws InvalidateConfigFormatException {
+		String[] pars = cfg.trim().split(":");
+		if (pars == null || pars.length != 3) {
+			throw new InvalidateConfigFormatException(cfg);
+		}
+		
+		if (!StringUtils.isNumeric(pars[2])) {
+			throw new InvalidateConfigFormatException(cfg); 
+		}
+		
+		if (pars[0].equalsIgnoreCase("tcp")) {
+			return getTcpSyslogMessageSender(pars[1], pars[2]);
+		} else if (pars[0].equalsIgnoreCase("udp")) {
+			return getUdpSyslogMessageSender(pars[1], pars[2]);
 		} else {
-			throw new SyslogException("Unsupported charset : " + charset);
-		}		
+			throw new InvalidateConfigFormatException(cfg); 
+		}
+		
+	}
+	
+	private TcpSyslogMessageSender getTcpSyslogMessageSender(String ip, String port) {
+		TcpSyslogMessageSender messageSender = new TcpSyslogMessageSender();
 		messageSender.setDefaultMessageHostname("shellguard"); // some syslog cloud services may use this field to transmit a secret key
-		messageSender.setDefaultAppName("scm");
+		messageSender.setDefaultAppName("shellguard");
 		messageSender.setDefaultFacility(Facility.USER);
 		messageSender.setDefaultSeverity(Severity.INFORMATIONAL);
 		messageSender.setSyslogServerHostname(ip);
 		messageSender.setSyslogServerPort(Integer.parseInt(port));
 		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
-		// send a Syslog message
-		messageSender.sendMessage(msg);
+		return messageSender;
 	}
 	
-	
+	private UdpSyslogMessageSender getUdpSyslogMessageSender(String ip, String port) throws SyslogException, IOException {
+		UdpSyslogMessageSender messageSender = new UdpSyslogMessageSender();
+		messageSender.setDefaultMessageHostname("shellguard"); // some syslog cloud services may use this field to transmit a secret key
+		messageSender.setDefaultAppName("shellguard");
+		messageSender.setDefaultFacility(Facility.USER);
+		messageSender.setDefaultSeverity(Severity.INFORMATIONAL);
+		messageSender.setSyslogServerHostname(ip);
+		messageSender.setSyslogServerPort(Integer.parseInt(port));
+		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
+	}
 
 }

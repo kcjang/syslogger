@@ -14,9 +14,12 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	implementation 'org.springframework.integration:spring-integration-syslog'
+	
 	implementation 'com.cloudbees:syslog-java-client:1.1.2'
+	implementation 'org.apache.commons:commons-lang3:3.12.0'
 	
 }
 

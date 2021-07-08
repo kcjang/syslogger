@@ -42,6 +42,7 @@ public class SysloggerApplication {
 				
 	    		
 	    		
+	    		
 				ret = true;
 			} finally {
 				
@@ -98,7 +99,7 @@ public class SysloggerApplication {
 		return messageSender;
 	}
 	
-	private UdpSyslogMessageSender getUdpSyslogMessageSender(String ip, String port) throws SyslogException, IOException {
+	private UdpSyslogMessageSender getUdpSyslogMessageSender(String ip, String port) {
 		UdpSyslogMessageSender messageSender = new UdpSyslogMessageSender();
 		messageSender.setDefaultMessageHostname("shellguard"); // some syslog cloud services may use this field to transmit a secret key
 		messageSender.setDefaultAppName("shellguard");
@@ -107,6 +108,8 @@ public class SysloggerApplication {
 		messageSender.setSyslogServerHostname(ip);
 		messageSender.setSyslogServerPort(Integer.parseInt(port));
 		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
+		
+		return messageSender;
 	}
 
 }

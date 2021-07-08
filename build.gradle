@@ -1,0 +1,25 @@
+plugins {
+	id 'org.springframework.boot' version '2.5.2'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+}
+
+group = 'com.kichang'
+version = '2021.7.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation 'org.springframework.integration:spring-integration-syslog'
+	implementation 'com.cloudbees:syslog-java-client:1.1.2'
+	
+}
+
+test {
+	useJUnitPlatform()
+}

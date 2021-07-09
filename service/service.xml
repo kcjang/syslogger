@@ -1,0 +1,10 @@
+<service>
+    <id>syslogger</id>
+    <name>syslogger</name>
+    <description>This runs syslogger as a Service.</description>
+    <env name="SYSLOGGER_HOME" value="%BASE%"/>
+    <executable>C:\work\01.java\jdk-16.0.1\bin\java</executable>
+    <arguments>-Xmx256m -jar "%BASE%\syslogger.jar"</arguments>
+    <logmode>rotate</logmode>
+    <logpath>logs</logpath>
+</service>

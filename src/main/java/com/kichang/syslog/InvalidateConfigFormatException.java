@@ -6,4 +6,8 @@ public class InvalidateConfigFormatException extends Exception {
 		super(cfg);
 	}
 
+	public InvalidateConfigFormatException() {
+		super();
+	}
+
 }

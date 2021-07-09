@@ -1,0 +1,11 @@
+logging:
+  file.name: logs/syslogger.log
+  level:
+    root: INFO
+
+  pattern:
+    console:  "%clr(%d{HH:mm:ss.SSS}){yellow} %clr([%-22thread]){blue} %clr(%-5level) %clr(%-50logger{36}){Green} : %clr([%-4line]) - %msg%n"
+    file:     "%d{HH:mm:ss.SSS} [%-22thread] %-5level %-100logger : %-4line - %msg%n"
+  exception-conversion-word : "%wException"
+trace : false
+server.error.include-stacktrace : NEVER

@@ -3,4 +3,3 @@ logging:
   file.name: logs/syslogger.log
   level:
     root: INFO
-    org.springframework.integration.ip.udp : OFF

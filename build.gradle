@@ -1,16 +1,39 @@
+import java.text.SimpleDateFormat
+import org.ajoberstar.grgit.Grgit
+
+
 plugins {
 	id 'org.springframework.boot' version '2.5.2'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 	id 'java'
+	id "org.ajoberstar.grgit" version "1.7.2"
 }
 
 group = 'com.kichang'
-version = '2021.7.2-RELEASE'
+version = '2021.7.3-RELEASE'
 sourceCompatibility = '11'
 
 repositories {
 	mavenCentral()
 }
+
+compileJava {
+  dependsOn 'clean'
+  dependsOn 'versionTxt'
+}
+
+task versionTxt()  {
+    doLast {
+        new File(projectDir, "src/main/resources/version.txt").text = """
+Version: $version
+Revision: ${grgit.head().abbreviatedId}
+Buildtime: ${new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date())}
+Application-name: eagle app
+"""
+    }
+}
+
+
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'

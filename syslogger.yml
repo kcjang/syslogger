@@ -3,3 +3,4 @@ logging:
   file.name: logs/syslogger.log
   level:
     root: INFO
+    com.kichang.syslog: DEBUG

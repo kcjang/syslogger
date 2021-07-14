@@ -2,6 +2,7 @@ package com.kichang.syslog;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -16,18 +17,19 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.integration.channel.NullChannel;
 import org.springframework.integration.ip.udp.UnicastReceivingChannelAdapter;
+import org.springframework.integration.syslog.DefaultMessageConverter;
+import org.springframework.integration.syslog.MessageConverter;
 import org.springframework.integration.syslog.RFC5424MessageConverter;
 import org.springframework.integration.syslog.SyslogHeaders;
 import org.springframework.integration.syslog.inbound.UdpSyslogReceivingChannelAdapter;
-import org.springframework.messaging.MessageChannel;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.cloudbees.syslog.Facility;
 import com.cloudbees.syslog.MessageFormat;
 import com.cloudbees.syslog.Severity;
+import com.cloudbees.syslog.sender.AbstractSyslogMessageSender;
 import com.cloudbees.syslog.sender.SyslogMessageSender;
 import com.cloudbees.syslog.sender.TcpSyslogMessageSender;
 import com.cloudbees.syslog.sender.UdpSyslogMessageSender;
@@ -62,77 +64,88 @@ public class SysloggerApplication {
 		        			"file:./syslogger.yml").build().run(args);
 	}
 	
-	
-	@Bean
-	public CommandLineRunner run(@Autowired Environment env) {
-		return (args) -> {
-			var e=env.getProperty("server.error.include-stacktrace");
-			//System.out.println("server.error.include-stacktrace: "+e);
-		};
-	}
-	
 	@Bean
 	public UdpSyslogReceivingChannelAdapter udpReceiver() {
-		//Log logger = LogFactory.getLog("udpReceiver");
 	    final UdpSyslogReceivingChannelAdapter adapter = new UdpSyslogReceivingChannelAdapter();
 	    adapter.setUdpAdapter(receiver());
 	    adapter.setOutputChannel((message, timeout) -> {
 	    			Map<String,?> map = (Map)message.getPayload();
+	    			logger.debug(message);
 	    	    	String msg = (String)map.get(SyslogHeaders.UNDECODED);
-	    	    	try {
-	    	    		logger.debug("output channel msg : " + msg);
-	    	    		List<String[]> list = propertyService.getListConfig();	
-	    				for(String[] parts : list) {
+    	    		logger.debug("output channel msg : " + msg);
+    	    		List<String[]> list = propertyService.getListConfig();	
+    				for(String[] parts : list) {
+    					try {
 	    					SyslogMessageSender sender = getMessageSender(parts);
 	    					logger.debug(String.format("send to : %s:%s:%s", parts[0], parts[1], parts[2]));
-	    					sender.sendMessage(msg);
-	    				}
-	    			} catch (Exception e) {
-	    				logger.error(e.getMessage());
-	    			} 
+    					
+							sender.sendMessage(msg);
+						} catch (IOException e) {
+							logger.error(e.getMessage());
+						} catch (InvalidateConfigFormatException e) {
+							logger.error(e.getMessage());
+						}
+    				}
+
 	    	    	return true;
 	    		});
-	    adapter.setConverter(new RFC5424MessageConverter());
+	    RFC5424MessageConverter converter = new KRRFC5424MessageConverter();
+	    adapter.setConverter(converter);
 	    return adapter;
 	}
 
 	
 	private SyslogMessageSender getMessageSender(String pars[]) throws InvalidateConfigFormatException {
-		if (pars[0].equalsIgnoreCase("tcp")) {
-			return getTcpSyslogMessageSender(pars[1], pars[2]);
-		} else if (pars[0].equalsIgnoreCase("udp")) {
-			return getUdpSyslogMessageSender(pars[1], pars[2]);
+		String protocol = "udp";
+		String encoding = "utf-8";
+		
+		if ("tcp".equalsIgnoreCase(pars[0]) || "udp".equalsIgnoreCase(pars[0])) {
+			protocol = pars[0];
 		} else {
 			throw new InvalidateConfigFormatException(pars.toString());
 		}
+		
+		if (pars.length > 3) {
+			encoding = pars[3];
+		}
+		
+		return getSyslogMessageSender(protocol, encoding, pars[1], pars[2]);
+		
 	}
 	
 
-	private TcpSyslogMessageSender getTcpSyslogMessageSender(String ip, String port) {
-		TcpSyslogMessageSender messageSender = new TcpSyslogMessageSender();
-		messageSender.setDefaultMessageHostname("shellguard"); // some syslog cloud services may use this field to transmit a secret key
-		messageSender.setDefaultAppName("shellguard");
-		messageSender.setDefaultFacility(Facility.USER);
-		messageSender.setDefaultSeverity(Severity.INFORMATIONAL);
-		messageSender.setSyslogServerHostname(ip);
-		messageSender.setSyslogServerPort(Integer.parseInt(port));
-		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
+	private SyslogMessageSender getSyslogMessageSender(String protocol, String encoding, String ip, String port) {
+
+		AbstractSyslogMessageSender messageSender = null;
+		if (encoding == null)
+			encoding = "utf-8";
+		
+		if ("tcp".equalsIgnoreCase(protocol)) {
+			messageSender = new KRTcpSyslogMessageSender(encoding);
+		} else if ("udp".equalsIgnoreCase(protocol)) {
+			messageSender = new KRUdpSyslogMessageSender(encoding);
+		}
+		
+		setSyslogMessageSender(messageSender, ip, port);
 		return messageSender;
 	}
 	
 	private UdpSyslogMessageSender getUdpSyslogMessageSender(String ip, String port) {
 		UdpSyslogMessageSender messageSender = new UdpSyslogMessageSender();
-		messageSender.setDefaultMessageHostname("shellguard"); // some syslog cloud services may use this field to transmit a secret key
-		messageSender.setDefaultAppName("shellguard");
-		messageSender.setDefaultFacility(Facility.USER);
-		messageSender.setDefaultSeverity(Severity.INFORMATIONAL);
-		messageSender.setSyslogServerHostname(ip);
-		messageSender.setSyslogServerPort(Integer.parseInt(port));
-		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
-		
+		setSyslogMessageSender(messageSender, ip, port);
 		return messageSender;
 	}
 	
+	private void setSyslogMessageSender(AbstractSyslogMessageSender messageSender, String ip, String port) {
+		messageSender.setDefaultMessageHostname("sgserver"); // some syslog cloud services may use this field to transmit a secret key
+		messageSender.setDefaultAppName("shellguard");
+		messageSender.setDefaultFacility(Facility.USER);
+		messageSender.setDefaultSeverity(Severity.NOTICE);
+		messageSender.setSyslogServerHostname(ip);
+		messageSender.setSyslogServerPort(Integer.parseInt(port));
+		messageSender.setMessageFormat(MessageFormat.RFC_3164); // optional, default is RFC 3164
+	}
+
 	
 	@Bean
 	public UnicastReceivingChannelAdapter receiver() {

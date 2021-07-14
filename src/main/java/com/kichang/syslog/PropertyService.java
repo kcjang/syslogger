@@ -59,7 +59,7 @@ public class PropertyService {
 		}
 		
 		String[] pars = line.trim().split(":");
-		if (pars == null || pars.length != 3) {
+		if (pars == null || (pars.length != 3 && pars.length != 4)) {
 			logger.error("Invalid Config Line : " + line);
 			return null;
 		}

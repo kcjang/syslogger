@@ -10,6 +10,7 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -40,6 +41,7 @@ public class SysloggerApplication {
 	Log logger = LogFactory.getLog(SysloggerApplication.class);
 	@Autowired PropertyService propertyService;
 	@Autowired Environment env;
+	@Value("${tcp.maxretry}") private int maxRetryCount;
 
 	public static void main(String[] args) {
 	    for(String arg : args) {
@@ -121,7 +123,7 @@ public class SysloggerApplication {
 			encoding = "utf-8";
 		
 		if ("tcp".equalsIgnoreCase(protocol)) {
-			messageSender = new KRTcpSyslogMessageSender(encoding);
+			messageSender = new KRTcpSyslogMessageSender(encoding, maxRetryCount);
 		} else if ("udp".equalsIgnoreCase(protocol)) {
 			messageSender = new KRUdpSyslogMessageSender(encoding);
 		}

@@ -75,6 +75,14 @@ public class KRTcpSyslogMessageSender extends AbstractSyslogMessageSender implem
 		super();
 		charset = Charset.forName(encoding);
 	}
+    
+    public KRTcpSyslogMessageSender(String encoding, int maxRetryCount) {
+    	super();
+		charset = Charset.forName(encoding);
+		this.maxRetryCount = maxRetryCount;
+	}
+    
+    
 
 	@Override
     public synchronized void sendMessage(@Nonnull SyslogMessage message) throws IOException {

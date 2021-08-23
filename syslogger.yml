@@ -4,3 +4,5 @@ logging:
   level:
     root: INFO
     com.kichang.syslog: DEBUG
+tcp.maxretry:   10    
+    

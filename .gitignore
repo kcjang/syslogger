@@ -43,3 +43,5 @@ gradle/
 gradlew
 gradlew.bat
 
+logs/
+
